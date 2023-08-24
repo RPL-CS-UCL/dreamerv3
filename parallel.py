@@ -203,6 +203,7 @@ class Damy:
         return getattr(self._env, name)
 
     def step(self, action):
+        #print("This is the action ", action)
         return lambda: self._env.step(action)
 
     def reset(self):

@@ -10,7 +10,7 @@ defaults:
   steps: 1e6
   parallel: False
   eval_every: 1e4
-  eval_episode_num: 10
+  eval_episode_num: 0
   log_every: 1e4
   reset_every: 0
   device: 'cuda:0'

@@ -55,6 +55,7 @@ class OneHotAction(gym.Wrapper):
         self.action_space = space
 
     def step(self, action):
+        action = action[0]
         index = np.argmax(action).astype(int)
         reference = np.zeros_like(action)
         reference[index] = 1

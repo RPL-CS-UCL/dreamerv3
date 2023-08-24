@@ -183,6 +183,9 @@ def make_dataset(episodes, config):
 
 def make_env(config, mode):
     suite, task = config.task.split("_", 1)
+    print(" ==== choosing env")
+    print(config)
+    print(suite, task)
     if suite == "dmc":
         import envs.dmc as dmc
 
@@ -230,6 +233,10 @@ def make_env(config, mode):
         import envs.minecraft as minecraft
 
         env = minecraft.make_env(task, size=config.size, break_speed=config.break_speed)
+        env = wrappers.OneHotAction(env)
+    elif suite == "isaac":
+        from core.environment import Environment
+        env = Environment()
         env = wrappers.OneHotAction(env)
     else:
         raise NotImplementedError(suite)
