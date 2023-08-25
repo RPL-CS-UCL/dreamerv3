@@ -190,8 +190,9 @@ class WorldModel(nn.Module):
         #obs["is_terminal"] = [obs["is_terminal"]]
         #obs["is_first"] = [obs["is_first"]]
         #print(" is terminal")
+        #print(obs["is_terminal"].shape) # 16,64
         #print(obs["is_terminal"])
-        obs["cont"] = torch.Tensor([1.0 - obs["is_terminal"]]).unsqueeze(-1)
+        obs["cont"] = torch.Tensor(1.0 - obs["is_terminal"]).unsqueeze(-1)
         #print("cont")
         #print(obs["cont"])
         obs = {k: torch.Tensor(v).to(self._config.device) for k, v in obs.items()}
