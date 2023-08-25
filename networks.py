@@ -205,9 +205,10 @@ class RSSM(nn.Module):
         # if shared is True, prior and post both use same networks(inp_layers, _img_out_layers, _ims_stat_layer)
         # otherwise, post use different network(_obs_out_layers) with prior[deter] and embed as inputs
         prev_action *= (1.0 / torch.clip(torch.abs(prev_action), min=1.0)).detach()
-
+        #prev_action = prev_action.squeeze()
         if torch.sum(is_first) > 0:
             is_first = is_first[:, None]
+      
             prev_action *= 1.0 - is_first
             init_state = self.initial(len(is_first))
             for key, val in prev_state.items():

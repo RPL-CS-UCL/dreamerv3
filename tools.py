@@ -289,6 +289,7 @@ def isaac_simulate(
 
         #obs = {k: np.stack([o[k] for o in obs]) for k in obs}
         action, agent_state = agent(obs, done, agent_state)
+      
         if isinstance(action, dict):
             action = [
                 {k: np.array(action[k].detach().cpu()) for k in action}
@@ -298,8 +299,12 @@ def isaac_simulate(
         assert len(action) == 1
         # step envs
         #result = [e.step(a) for e, a in zip(envs, action)]
-
-        result = envs.step(action[0])
+        action = action[0]
+        print(action)
+        action["action"] = action["action"].squeeze()
+        print(action)
+        #action = action.squeeze()
+        result = envs.step(action)
         # results = [r() for r in results]
         # obs, reward, done = zip(*[p[:3] for p in results])
 
@@ -317,7 +322,7 @@ def isaac_simulate(
         o, r, d, info = result
         o = {k: convert(v) for k, v in o.items()}
         transition = o.copy()
-        action = action[0]
+
         if isinstance(action, dict):
             transition.update(action)
         else:
@@ -392,7 +397,6 @@ def add_to_cache(cache, id, transition):
             else:
                 cache[id][key].append(convert(val))
 
-
 def erase_over_episodes(cache, dataset_size):
     step_in_dataset = 0
     for key, ep in reversed(sorted(cache.items(), key=lambda x: x[0])):
@@ -451,9 +455,7 @@ def from_generator(generator, batch_size):
 
 def sample_episodes(episodes, length, seed=0):
     np_random = np.random.RandomState(seed)
-    print(" ==== episodes")
-    print(episodes)
-    print(length)
+
     while True:
         size = 0
         ret = None
