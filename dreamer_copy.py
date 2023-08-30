@@ -181,6 +181,30 @@ def make_dataset(episodes, config):
     dataset = tools.from_generator(generator, config.batch_size)
     return dataset
 
+def make_env_seq(config, mode, id):
+    suite, task = config.task.split("_", 1)
+    print(" ==== choosing env")
+    print(config)
+    print(suite, task)
+    if suite == "dmc":
+        import envs.dmc as dmc
+
+        env = dmc.DeepMindControl(
+            task, config.action_repeat, config.size, seed=config.seed
+        )
+        env = wrappers.NormalizeActions(env)
+    elif suite == "isaac":
+        from core.environment import Environment
+        env = Environment(id=id)
+        env = wrappers.OneHotAction(env)
+    else:
+        raise NotImplementedError(suite)
+    env = wrappers.TimeLimit(env, config.time_limit)
+    env = wrappers.SelectAction(env, key="action")
+    env = wrappers.UUID(env)
+    if suite == "minecraft":
+        env = wrappers.RewardObs(env)
+    return env
 
 def make_env(config, mode):
     suite, task = config.task.split("_", 1)
