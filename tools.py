@@ -148,6 +148,10 @@ def simulate_multi(
     else:
         step, episode, done, length, obs, agent_state, reward = state
     while (steps and step < steps) or (episodes and episode < episodes):
+        # print("=======")
+        # start_time = time.time()
+
+        # print(f"Simulation, episodes {episodes}, {step}/{steps} steps. Length: {length}")
         # reset envs if necessary
         if done.any():
             indices = [index for index, d in enumerate(done) if d]
@@ -163,6 +167,9 @@ def simulate_multi(
                 add_to_cache(cache, envs[index].id, t)
                 # replace obs with done by initial state
                 obs[index] = result
+
+        # print("reset time ", time.time()-start_time)
+        # start_time2 = time.time()
         # step agents
         obs = {k: np.stack([o[k] for o in obs]) for k in obs[0]}
         action, agent_state = agent(obs, done, agent_state)
@@ -184,6 +191,7 @@ def simulate_multi(
         # perform rest of actual step
         results = [e.post_step(a) for e, a in zip(envs, action)]
         results = [r() for r in results]
+
         obs, reward, done = zip(*[p[:3] for p in results])
         obs = list(obs)
         reward = list(reward)
@@ -192,6 +200,8 @@ def simulate_multi(
         length += 1
         step += len(envs)
         length *= 1 - done
+
+        # print("step actions and increament lengths", time.time()-start_time2)
         # add to cache
         for a, result, env in zip(action, results, envs):
             o, r, d, info = result
@@ -248,6 +258,7 @@ def simulate_multi(
                         logger.scalar(f"eval_episodes", len(eval_scores))
                         logger.write(step=logger.step)
                         eval_done = True
+        # print("Time taken for 1 simulation: ", (time.time()-start_time))
     if is_eval:
         # keep only last item for saving memory. this cache is used for video_pred later
         while len(cache) > 1:
@@ -277,6 +288,8 @@ def simulate(
     else:
         step, episode, done, length, obs, agent_state, reward = state
     while (steps and step < steps) or (episodes and episode < episodes):
+        print("=======")
+        start_time = time.time()
         # reset envs if necessary
         if done.any():
             indices = [index for index, d in enumerate(done) if d]
@@ -292,6 +305,8 @@ def simulate(
                 add_to_cache(cache, envs[index].id, t)
                 # replace obs with done by initial state
                 obs[index] = result
+        print("reset time ", time.time()-start_time)
+        start_time2 = time.time()
         # step agents
         obs = {k: np.stack([o[k] for o in obs]) for k in obs[0]}
         action, agent_state = agent(obs, done, agent_state)
@@ -315,6 +330,7 @@ def simulate(
         length += 1
         step += len(envs)
         length *= 1 - done
+        print("step actions and increament lengths", time.time()-start_time2)
         # add to cache
         for a, result, env in zip(action, results, envs):
             o, r, d, info = result
@@ -371,6 +387,8 @@ def simulate(
                         logger.scalar(f"eval_episodes", len(eval_scores))
                         logger.write(step=logger.step)
                         eval_done = True
+
+        print("Time taken for 1 simulation: ", (time.time()-start_time))
     if is_eval:
         # keep only last item for saving memory. this cache is used for video_pred later
         while len(cache) > 1:

@@ -56,13 +56,35 @@ class OneHotAction(gym.Wrapper):
 
     def step(self, action):
         #action = action[0]
+
+        # print("here1 ", action)
         index = np.argmax(action).astype(int)
         reference = np.zeros_like(action)
+
+        # print("here2 ", reference)
         reference[index] = 1
         if not np.allclose(reference, action):
             raise ValueError(f"Invalid one-hot action:\n{action}")
         return self.env.step(index)
 
+    def pre_step(self, action):
+        # print("here1 ", action)
+        #action = action[0]
+        index = np.argmax(action).astype(int)
+        reference = np.zeros_like(action)
+        # print("here2 ", reference)
+        reference[index] = 1
+        if not np.allclose(reference, action):
+            raise ValueError(f"Invalid one-hot action:\n{action}")
+        return self.env.pre_step(index)
+    def post_step(self, action):
+        #action = action[0]
+        index = np.argmax(action).astype(int)
+        reference = np.zeros_like(action)
+        reference[index] = 1
+        if not np.allclose(reference, action):
+            raise ValueError(f"Invalid one-hot action:\n{action}")
+        return self.env.post_step(index)
     def reset(self):
         return self.env.reset()
 
@@ -105,6 +127,11 @@ class SelectAction(gym.Wrapper):
     def step(self, action):
         return self.env.step(action[self._key])
 
+    def pre_step(self, action):
+        return self.env.pre_step(action[self._key])
+
+    def post_step(self, action):
+        return self.env.post_step(action[self._key])
 
 class UUID(gym.Wrapper):
     def __init__(self, env):
