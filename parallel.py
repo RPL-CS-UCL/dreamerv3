@@ -206,5 +206,12 @@ class Damy:
         #print("This is the action ", action)
         return lambda: self._env.step(action)
 
+    def pre_step(self, action):
+        #print("This is the action ", action)
+        return lambda: self._env.step(action)
+
+    def post_step(self, action):
+        #print("This is the action ", action)
+        return lambda: self._env.step(action)
     def reset(self):
         return lambda: self._env.reset()

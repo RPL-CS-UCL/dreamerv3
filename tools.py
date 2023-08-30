@@ -175,12 +175,11 @@ def simulate_multi(
             action = np.array(action)
         assert len(action) == len(envs)
         # step envs
-
         pre_steps = [e.pre_step(a) for e, a in zip(envs, action)]
         pre_steps= [r() for r in pre_steps]
         # run sim for all
         run = envs[0].simulate_steps()
-        run = run()
+        # run = run()
 
         # perform rest of actual step
         results = [e.post_step(a) for e, a in zip(envs, action)]
@@ -304,6 +303,7 @@ def simulate(
         else:
             action = np.array(action)
         assert len(action) == len(envs)
+
         # step envs
         results = [e.step(a) for e, a in zip(envs, action)]
         results = [r() for r in results]
