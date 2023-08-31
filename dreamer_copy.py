@@ -183,9 +183,6 @@ def make_dataset(episodes, config):
 
 def make_env_seq(config, mode, id):
     suite, task = config.task.split("_", 1)
-    print(" ==== choosing env")
-    print(config)
-    print(suite, task)
     if suite == "dmc":
         import envs.dmc as dmc
 
