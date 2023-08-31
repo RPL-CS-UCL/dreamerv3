@@ -191,7 +191,6 @@ def make_env_seq(config, mode, id):
         )
         env = wrappers.NormalizeActions(env)
     elif suite == "isaac":
-        print(" ============== making seq isaac env ================== ")
         from core.environment import Environment
         env = Environment(id=id)
         env = wrappers.OneHotAction(env)
