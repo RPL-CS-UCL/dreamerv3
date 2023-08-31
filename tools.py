@@ -131,12 +131,14 @@ def simulate_multi(
     cache,
     directory,
     logger,
+    start_time=None,
     is_eval=False,
     limit=None,
     steps=0,
     episodes=0,
     state=None,
 ):
+    time_elapsed = None
     # initialize or unpack simulation state
     if state is None:
         step, episode = 0, 0
@@ -216,6 +218,9 @@ def simulate_multi(
             add_to_cache(cache, env.id, transition)
 
         if done.any():
+            if start_time is not None:
+                a = 1
+                time_elapsed = time.time() - start_time
             indices = [index for index, d in enumerate(done) if d]
             # logging for done episode 
             for i in indices:
@@ -238,6 +243,8 @@ def simulate_multi(
                     logger.scalar(f"train_return", score)
                     logger.scalar(f"train_length", length)
                     logger.scalar(f"train_episodes", len(cache))
+                    if time_elapsed:
+                        logger.scalar(f"time elapsed", time_elapsed)
                     logger.write(step=logger.step)
                 else:
                     if not "eval_lengths" in locals():
@@ -259,12 +266,14 @@ def simulate_multi(
                         logger.write(step=logger.step)
                         eval_done = True
         # print("Time taken for 1 simulation: ", (time.time()-start_time))
+    # print(f"Time elapsed: {time.time() - start_time}")
     if is_eval:
         # keep only last item for saving memory. this cache is used for video_pred later
         while len(cache) > 1:
             # FIFO
             cache.popitem(last=False)
     return (step - steps, episode - episodes, done, length, obs, agent_state, reward)
+
 def simulate(
     agent,
     envs,
@@ -502,6 +511,7 @@ def isaac_simulate(
                 logger.scalar(f"train_return", score)
                 logger.scalar(f"train_length", length)
                 logger.scalar(f"train_episodes", len(cache))
+                logger.scalar(f"time elapsed", time_elapsed)
                 logger.write(step=logger.step)
             else:
                 if not "eval_lengths" in locals():
