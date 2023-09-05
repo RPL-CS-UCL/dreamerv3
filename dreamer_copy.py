@@ -147,6 +147,7 @@ class Dreamer(nn.Module):
         amount = self._config.expl_amount if training else self._config.eval_noise
         if amount == 0:
             return action
+        print("exploring")
         if "onehot" in self._config.actor_dist:
             probs = amount / self._config.num_actions + (1 - amount) * action
             return tools.OneHotDist(probs=probs).sample()
