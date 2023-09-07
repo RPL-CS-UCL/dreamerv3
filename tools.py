@@ -446,6 +446,25 @@ def simulate_multi(
         step += len(envs)
         length *= 1 - done
 
+        # If the condition for increasing difficulty is met
+        if episode_counter >= min_episodes_threshold and average_reward > reward_threshold:
+            # Increase difficulty for all environments
+            for i in range(len(envs)):
+                if envs[i].size_of_map < envs[i].map_limit:
+                    envs[i].size_of_map += 5
+                    envs[i].size_of_map = min(envs[i].size_of_map, envs[i].map_limit)
+                    print("MAP SIZE: ", envs[i].size_of_map)
+                if envs[i].num_obstacles < envs[i].num_obstacles_limit:
+                    envs[i].num_obstacles += 2
+                    envs[i].num_obstacles = min(envs[i].num_obstacles, envs[i].num_obstacles_limit)
+                    print("NUM OBSTACLES: ", envs[i].num_obstacles)
+                if envs[i].minimum_distance_between_objects < envs[i].distance_between_objects_limit:
+                    envs[i].minimum_distance_between_objects += 2
+                    envs[i].minimum_distance_between_objects = min(envs[i].minimum_distance_between_objects, envs[i].distance_between_objects_limit)
+                    print("MINIMUM DISTANCE BETWEEN OBJECTS: ", envs[i].minimum_distance_between_objects)
+            total_reward = 0
+            episode_counter = 0
+
         # add to cache
         for a, result, env in zip(action, results, envs):
             o, r, d, info = result
@@ -460,24 +479,6 @@ def simulate_multi(
             add_to_cache(cache, env.id, transition)
 
         if done.any():
-            # print("EPISODE: ", episode)
-            # print("EPISODE: ", episode_counter)
-            if episode_counter >= min_episodes_threshold and average_reward > reward_threshold:
-                for i in indices:
-                    if envs[i].size_of_map < envs[i].map_limit:
-                        envs[i].size_of_map += 5
-                        envs[i].size_of_map = min(envs[i].size_of_map, envs[i].map_limit)
-                        print("MAP SIZE: ", envs[i].size_of_map)
-                    if envs[i].num_obstacles < envs[i].num_obstacles_limit:
-                        envs[i].num_obstacles += 2
-                        envs[i].num_obstacles = min(envs[i].num_obstacles, envs[i].num_obstacles_limit)
-                        print("NUM OBSTACLES: ", envs[i].num_obstacles)
-                    if envs[i].minimum_distance_between_objects < envs[i].distance_between_objects_limit:
-                        envs[i].minimum_distance_between_objects += 2
-                        envs[i].minimum_distance_between_objects = min(envs[i].minimum_distance_between_objects, envs[i].distance_between_objects_limit)
-                        print("MINIMUM DISTANCE BETWEEN OBJECTS: ", envs[i].minimum_distance_between_objects)
-                total_reward = 0
-                episode_counter = 0
             if start_time is not None:
                 a = 1
                 time_elapsed = time.time() - start_time
