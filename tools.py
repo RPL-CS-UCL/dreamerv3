@@ -378,6 +378,7 @@ def simulate_multi(
     reward_threshold = 0.6
     min_episodes_threshold = 5
     total_reward = 0
+    # episode_counter = [0] * len(envs)
     episode_counter = 0
     # initialize or unpack simulation state
     if state is None:
@@ -391,6 +392,7 @@ def simulate_multi(
         step, episode, done, length, obs, agent_state, reward = state
         # total_reward = sum(reward)
     while (steps and step < steps) or (episodes and episode < episodes):
+        # print("EPISODES: ",episodes, "EPISODE: ", episode)
         # reset envs if necessary
         if done.any():
             indices = [index for index, d in enumerate(done) if d]
@@ -458,8 +460,8 @@ def simulate_multi(
             add_to_cache(cache, env.id, transition)
 
         if done.any():
-            print("EPISODE: ", episode)
-            print("EPISODE: ", episode_counter)
+            # print("EPISODE: ", episode)
+            # print("EPISODE: ", episode_counter)
             if episode_counter >= min_episodes_threshold and average_reward > reward_threshold:
                 for i in indices:
                     if envs[i].size_of_map < envs[i].map_limit:
