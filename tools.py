@@ -359,6 +359,8 @@ def simulate_multi_test(
             # FIFO
             cache.popitem(last=False)
     return (step - steps, episode - episodes, done, length, obs, agent_state, reward)
+
+
 def simulate_multi(
     agent,
     envs,
@@ -373,6 +375,10 @@ def simulate_multi(
     state=None,
 ):
     time_elapsed = None
+    reward_threshold = 0.6
+    min_episodes_threshold = 5
+    total_reward = 0
+    episode_counter = 0
     # initialize or unpack simulation state
     if state is None:
         step, episode = 0, 0
@@ -383,16 +389,14 @@ def simulate_multi(
         reward = [0] * len(envs)
     else:
         step, episode, done, length, obs, agent_state, reward = state
+        # total_reward = sum(reward)
     while (steps and step < steps) or (episodes and episode < episodes):
-        # print("=======")
-        # start_time = time.time()
-
-        # print(f"Simulation, episodes {episodes}, {step}/{steps} steps. Length: {length}")
         # reset envs if necessary
         if done.any():
             indices = [index for index, d in enumerate(done) if d]
             results = [envs[i].reset() for i in indices]
             results = [r() for r in results]
+
             for index, result in zip(indices, results):
                 t = result.copy()
                 t = {k: convert(v) for k, v in t.items()}
@@ -404,8 +408,6 @@ def simulate_multi(
                 # replace obs with done by initial state
                 obs[index] = result
 
-        # print("reset time ", time.time()-start_time)
-        # start_time2 = time.time()
         # step agents
         obs = {k: np.stack([o[k] for o in obs]) for k in obs[0]}
         action, agent_state = agent(obs, done, agent_state)
@@ -429,15 +431,19 @@ def simulate_multi(
         results = [r() for r in results]
 
         obs, reward, done = zip(*[p[:3] for p in results])
+        total_reward += sum(reward)
+        average_reward = total_reward / episode_counter if episode_counter != 0 else 0
+        # if average_reward:
+        #     print("average_reward", average_reward)
         obs = list(obs)
         reward = list(reward)
         done = np.stack(done)
         episode += int(done.sum())
+        episode_counter += int(done.sum())
         length += 1
         step += len(envs)
         length *= 1 - done
 
-        # print("step actions and increament lengths", time.time()-start_time2)
         # add to cache
         for a, result, env in zip(action, results, envs):
             o, r, d, info = result
@@ -452,6 +458,24 @@ def simulate_multi(
             add_to_cache(cache, env.id, transition)
 
         if done.any():
+            print("EPISODE: ", episode)
+            print("EPISODE: ", episode_counter)
+            if episode_counter >= min_episodes_threshold and average_reward > reward_threshold:
+                for i in indices:
+                    if envs[i].size_of_map < envs[i].map_limit:
+                        envs[i].size_of_map += 5
+                        envs[i].size_of_map = min(envs[i].size_of_map, envs[i].map_limit)
+                        print("MAP SIZE: ", envs[i].size_of_map)
+                    if envs[i].num_obstacles < envs[i].num_obstacles_limit:
+                        envs[i].num_obstacles += 2
+                        envs[i].num_obstacles = min(envs[i].num_obstacles, envs[i].num_obstacles_limit)
+                        print("NUM OBSTACLES: ", envs[i].num_obstacles)
+                    if envs[i].minimum_distance_between_objects < envs[i].distance_between_objects_limit:
+                        envs[i].minimum_distance_between_objects += 2
+                        envs[i].minimum_distance_between_objects = min(envs[i].minimum_distance_between_objects, envs[i].distance_between_objects_limit)
+                        print("MINIMUM DISTANCE BETWEEN OBJECTS: ", envs[i].minimum_distance_between_objects)
+                total_reward = 0
+                episode_counter = 0
             if start_time is not None:
                 a = 1
                 time_elapsed = time.time() - start_time
@@ -499,8 +523,6 @@ def simulate_multi(
                         logger.scalar(f"eval_episodes", len(eval_scores))
                         logger.write(step=logger.step)
                         eval_done = True
-        # print("Time taken for 1 simulation: ", (time.time()-start_time))
-    # print(f"Time elapsed: {time.time() - start_time}")
     if is_eval:
         # keep only last item for saving memory. this cache is used for video_pred later
         while len(cache) > 1:
