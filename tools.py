@@ -375,9 +375,12 @@ def simulate_multi(
     state=None,
 ):
     time_elapsed = None
-    reward_threshold = 0.6
+    reward_threshold = 6 # this depends massively on rewards
     min_episodes_threshold = 5
     total_reward = 0
+    map_size_increase = 5
+    num_obstacles_increase = 2
+    min_dist_between_objs_increase = 2
     # episode_counter = [0] * len(envs)
     episode_counter = 0
     # initialize or unpack simulation state
@@ -450,18 +453,44 @@ def simulate_multi(
         if episode_counter >= min_episodes_threshold and average_reward > reward_threshold:
             # Increase difficulty for all environments
             for i in range(len(envs)):
-                if envs[i].size_of_map < envs[i].map_limit:
-                    envs[i].size_of_map += 5
-                    envs[i].size_of_map = min(envs[i].size_of_map, envs[i].map_limit)
-                    print("MAP SIZE: ", envs[i].size_of_map)
-                if envs[i].num_obstacles < envs[i].num_obstacles_limit:
-                    envs[i].num_obstacles += 2
-                    envs[i].num_obstacles = min(envs[i].num_obstacles, envs[i].num_obstacles_limit)
-                    print("NUM OBSTACLES: ", envs[i].num_obstacles)
-                if envs[i].minimum_distance_between_objects < envs[i].distance_between_objects_limit:
-                    envs[i].minimum_distance_between_objects += 2
-                    envs[i].minimum_distance_between_objects = min(envs[i].minimum_distance_between_objects, envs[i].distance_between_objects_limit)
-                    print("MINIMUM DISTANCE BETWEEN OBJECTS: ", envs[i].minimum_distance_between_objects)
+                size_of_map, random_starting_orientation, num_obstacles, min_dist_between_objs = envs[i].get_curriculum_values()
+                if size_of_map < envs[i].map_limit:
+                    new_map_size = size_of_map+map_size_increase
+                    new_map_size = min(new_map_size, envs[i].map_limit)
+                else:
+                    new_map_size = size_of_map
+                if num_obstacles < envs[i].num_obstacles_limit:
+                    new_num_obstacles = num_obstacles+num_obstacles_increase
+                    new_num_obstacles = min(new_num_obstacles, envs[i].num_obstacles_limit)
+                else:
+                    new_num_obstacles = num_obstacles
+                if min_dist_between_objs < envs[i].distance_between_objects_limit:
+                    new_min_dist_between_objs = min_dist_between_objs+min_dist_between_objs_increase
+                    new_min_dist_between_objs = min(new_min_dist_between_objs, envs[i].distance_between_objects_limit)
+                else:
+                    new_min_dist_between_objs = min_dist_between_objs
+                envs[i].set_curriculum_values(
+                    new_map_size,
+                    False,
+                    new_num_obstacles,
+                    new_min_dist_between_objs
+                )
+                print("NEW CURRICULUM PARAMETERS: ", envs[i].get_curriculum_values())
+                # if envs[i].size_of_map < envs[i].map_limit:
+                #     envs[i].size_of_map += 5
+                #     envs[i].size_of_map = min(envs[i].size_of_map, envs[i].map_limit)
+                #     print("MAP SIZE: ", envs[i].size_of_map)
+                # if envs[i].num_obstacles < envs[i].num_obstacles_limit:
+                #     envs[i].num_obstacles += 2
+                #     envs[i].num_obstacles = min(envs[i].num_obstacles, envs[i].num_obstacles_limit)
+                #     print("NUM OBSTACLES: ", envs[i].num_obstacles)
+                # if envs[i].minimum_distance_between_objects < envs[i].distance_between_objects_limit:
+                #     envs[i].minimum_distance_between_objects += 2
+                #     envs[i].minimum_distance_between_objects = min(envs[i].minimum_distance_between_objects, envs[i].distance_between_objects_limit)
+                #     print("MINIMUM DISTANCE BETWEEN OBJECTS: ", envs[i].minimum_distance_between_objects)
+                # if envs[i].size_of_map == envs[i].map_limit:
+                #     envs[i].random_starting_orientation = True
+                #     print("RANDOM STARTING ORIENTATION: ", envs[i].random_starting_orientation)
             total_reward = 0
             episode_counter = 0
 
