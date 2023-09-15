@@ -80,7 +80,7 @@ class Logger:
         scalars = list(self._scalars.items())
         if fps:
             scalars.append(("fps", self._compute_fps(step)))
-        print(f"[{step}]", " / ".join(f"{k} {v:.1f}" for k, v in scalars))
+        print(f"[{step}]", " / ".join(f"{k} {v:.4f}" for k, v in scalars))
         with (self._logdir / "metrics.jsonl").open("a") as f:
             f.write(json.dumps({"step": step, **dict(scalars)}) + "\n")
         for name, value in scalars:
@@ -375,12 +375,17 @@ def simulate_multi(
     state=None,
 ):
     time_elapsed = None
-    reward_threshold = 6 # this depends massively on rewards
-    min_episodes_threshold = 5
-    total_reward = 0
-    map_size_increase = 5
-    num_obstacles_increase = 2
-    min_dist_between_objs_increase = 2
+    curriculum_learning = True
+    if curriculum_learning:
+        reward_threshold = 6 # this depends massively on rewards
+        min_episodes_threshold = 5
+        total_reward = 0
+        map_size_increase = 2
+        num_obstacles_increase = 1
+        min_dist_between_objs_increase = 0.5
+        episode_length_increase = 75
+        dist_between_inter_and_goal_increase = 2
+        dist_between_inter_and_agent_increase = 2
     # episode_counter = [0] * len(envs)
     episode_counter = 0
     # initialize or unpack simulation state
@@ -436,8 +441,9 @@ def simulate_multi(
         results = [r() for r in results]
 
         obs, reward, done = zip(*[p[:3] for p in results])
-        total_reward += sum(reward)
-        average_reward = total_reward / episode_counter if episode_counter != 0 else 0
+        if curriculum_learning:
+            total_reward += sum(reward)
+            average_reward = total_reward / episode_counter if episode_counter != 0 else 0
         # if average_reward:
         #     print("average_reward", average_reward)
         obs = list(obs)
@@ -449,50 +455,87 @@ def simulate_multi(
         step += len(envs)
         length *= 1 - done
 
-        # If the condition for increasing difficulty is met
-        if episode_counter >= min_episodes_threshold and average_reward > reward_threshold:
-            # Increase difficulty for all environments
-            for i in range(len(envs)):
-                size_of_map, random_starting_orientation, num_obstacles, min_dist_between_objs = envs[i].get_curriculum_values()
-                if size_of_map < envs[i].map_limit:
-                    new_map_size = size_of_map+map_size_increase
-                    new_map_size = min(new_map_size, envs[i].map_limit)
-                else:
-                    new_map_size = size_of_map
-                if num_obstacles < envs[i].num_obstacles_limit:
-                    new_num_obstacles = num_obstacles+num_obstacles_increase
-                    new_num_obstacles = min(new_num_obstacles, envs[i].num_obstacles_limit)
-                else:
-                    new_num_obstacles = num_obstacles
-                if min_dist_between_objs < envs[i].distance_between_objects_limit:
-                    new_min_dist_between_objs = min_dist_between_objs+min_dist_between_objs_increase
-                    new_min_dist_between_objs = min(new_min_dist_between_objs, envs[i].distance_between_objects_limit)
-                else:
-                    new_min_dist_between_objs = min_dist_between_objs
-                envs[i].set_curriculum_values(
-                    new_map_size,
-                    False,
-                    new_num_obstacles,
-                    new_min_dist_between_objs
-                )
-                print("NEW CURRICULUM PARAMETERS: ", envs[i].get_curriculum_values())
-                # if envs[i].size_of_map < envs[i].map_limit:
-                #     envs[i].size_of_map += 5
-                #     envs[i].size_of_map = min(envs[i].size_of_map, envs[i].map_limit)
-                #     print("MAP SIZE: ", envs[i].size_of_map)
-                # if envs[i].num_obstacles < envs[i].num_obstacles_limit:
-                #     envs[i].num_obstacles += 2
-                #     envs[i].num_obstacles = min(envs[i].num_obstacles, envs[i].num_obstacles_limit)
-                #     print("NUM OBSTACLES: ", envs[i].num_obstacles)
-                # if envs[i].minimum_distance_between_objects < envs[i].distance_between_objects_limit:
-                #     envs[i].minimum_distance_between_objects += 2
-                #     envs[i].minimum_distance_between_objects = min(envs[i].minimum_distance_between_objects, envs[i].distance_between_objects_limit)
-                #     print("MINIMUM DISTANCE BETWEEN OBJECTS: ", envs[i].minimum_distance_between_objects)
-                # if envs[i].size_of_map == envs[i].map_limit:
-                #     envs[i].random_starting_orientation = True
-                #     print("RANDOM STARTING ORIENTATION: ", envs[i].random_starting_orientation)
-            total_reward = 0
-            episode_counter = 0
+        if curriculum_learning:
+            # If the condition for increasing difficulty is met
+            # print(average_reward)
+            # print(envs[0].get_curriculum_values())
+            if episode_counter >= min_episodes_threshold and average_reward > reward_threshold:
+                print("god help us")
+                print("map limit", envs[0].map_limit)
+                # Increase difficulty for all environments
+                for i in range(len(envs)):
+                    (size_of_map, 
+                    random_starting_orientation, 
+                    num_obstacles, 
+                    min_dist_between_objs,
+                    episode_length,
+                    reward_first_time) = envs[i].get_curriculum_values()
+                    # min_dist_between_inter_and_goal, 
+                    # max_dist_between_inter_and_goal, 
+                    # min_dist_between_inter_and_agent, 
+                    # max_dist_between_inter_and_agent) 
+                    if size_of_map < envs[i].map_limit:
+                        new_map_size = size_of_map+map_size_increase
+                        new_map_size = min(new_map_size, envs[i].map_limit)
+                    else:
+                        new_map_size = size_of_map
+                    if num_obstacles < envs[i].num_obstacles_limit:
+                        new_num_obstacles = num_obstacles+num_obstacles_increase
+                        new_num_obstacles = min(new_num_obstacles, envs[i].num_obstacles_limit)
+                    else:
+                        new_num_obstacles = num_obstacles
+                    if min_dist_between_objs < envs[i].distance_between_objects_limit:
+                        new_min_dist_between_objs = min_dist_between_objs+min_dist_between_objs_increase
+                        new_min_dist_between_objs = min(new_min_dist_between_objs, envs[i].distance_between_objects_limit)
+                    else:
+                        new_min_dist_between_objs = min_dist_between_objs
+                    if episode_length < envs[i].max_length:
+                        new_episode_length = episode_length+episode_length_increase
+                        new_episode_length = min(new_episode_length, envs[i].max_length)
+                    if episode_counter > 20:
+                        reward_first_time = False
+
+                    # if min_dist_between_inter_and_goal < envs[i].min_dist_between_inter_and_goal_limit:
+                    #     new_min_dist_between_inter_and_goal = min_dist_between_inter_and_goal+dist_between_inter_and_goal_increase
+                    #     new_min_dist_between_inter_and_goal = min(new_min_dist_between_inter_and_goal, envs[i].min_dist_between_inter_and_goal_limit)
+                    # else:
+                    #     new_min_dist_between_inter_and_goal = min_dist_between_inter_and_goal
+                    # if max_dist_between_inter_and_goal < envs[i].max_dist_between_inter_and_goal_limit:
+                    #     new_max_dist_between_inter_and_goal = max_dist_between_inter_and_goal+dist_between_inter_and_goal_increase
+                    #     new_max_dist_between_inter_and_goal = min(new_max_dist_between_inter_and_goal, envs[i].max_dist_between_inter_and_goal_limit)
+                    # else:
+                    #     new_max_dist_between_inter_and_goal = max_dist_between_inter_and_goal
+                    # if min_dist_between_inter_and_agent < envs[i].min_dist_between_inter_and_agent_limit:
+                    #     new_min_dist_between_inter_and_agent = min_dist_between_inter_and_agent+dist_between_inter_and_agent_increase
+                    #     new_min_dist_between_inter_and_agent = min(new_min_dist_between_inter_and_agent, envs[i].min_dist_between_inter_and_agent_limit)
+                    # else:
+                    #     new_min_dist_between_inter_and_agent = min_dist_between_inter_and_agent
+                    # if max_dist_between_inter_and_agent < envs[i].max_dist_between_inter_and_agent:
+                    #     new_max_dist_between_inter_and_agent = max_dist_between_inter_and_agent+dist_between_inter_and_agent_increase
+                    #     new_max_dist_between_inter_and_agent = min(new_max_dist_between_inter_and_agent, envs[i].max_dist_between_inter_and_agent)
+                    # else:
+                    #     new_max_dist_between_inter_and_agent = max_dist_between_inter_and_agent
+                    if envs[i].curriculum_coords_check(new_num_obstacles+3, new_min_dist_between_objs, new_map_size):
+                        new_map_size+=3
+                        new_map_size = min(new_map_size, envs[i].map_limit)
+                    if new_map_size >= 20: # and new_num_obstacles == envs[i].num_obstacles_limit and new_min_dist_between_objs == envs[i].distance_between_objects_limit:
+                        random_starting_orientation = True
+
+                    envs[i].set_curriculum_values(
+                        new_map_size,
+                        random_starting_orientation,
+                        new_num_obstacles,
+                        new_min_dist_between_objs,
+                        new_episode_length,
+                        reward_first_time
+                        # new_min_dist_between_inter_and_goal,
+                        # new_max_dist_between_inter_and_goal,
+                        # new_min_dist_between_inter_and_agent,
+                        # new_max_dist_between_inter_and_agent
+                    )
+                    print("CURRICULUM PARAMETERS: ", envs[i].get_curriculum_values())
+                total_reward = 0
+                episode_counter = 0
 
         # add to cache
         for a, result, env in zip(action, results, envs):
